@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>抽題小工具（U2/U3/元素）</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial; margin: 24px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 640px; }
+    .topbar { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    select, button, input { border-radius: 10px; border: 1px solid #ccc; }
+    select { padding: 10px 12px; }
+    .prompt { font-size: 44px; font-weight: 800; margin: 12px 0 6px; }
+    .meta { color: #666; margin-bottom: 12px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button { padding: 10px 14px; cursor: pointer; }
+    button.primary { border: none; background: #111; color: #fff; }
+    button.good { border: none; background: #0a7; color: #fff; }
+    button.bad  { border: none; background: #e33; color: #fff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    input { padding: 10px 12px; width: 100%; box-sizing: border-box; }
+    .hint { color: #999; font-size: 13px; margin-top: 8px; }
+    .small { font-size: 14px; color: #666; margin-top: 12px; }
+    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="topbar">
+      <div style="color:#666;">模式：</div>
+      <select id="modeSelect">
+        <option value="u2">U2</option>
+        <option value="u3">U3</option>
+        <option value="elements">元素週期表（前30：H~Zn）</option>
+      </select>
+      <button id="btnReset">Reset（此模式）</button>
+    </div>
+
+    <div class="meta" style="margin-top:10px;">
+      老師模式：你看學生回答是否正確，再按「答對 / 答錯」
+    </div>
+
+    <div class="prompt" id="prompt">—</div>
+    <div class="meta" id="remaining">剩餘：—</div>
+
+    <div>
+      <input id="studentAnswer" placeholder="（可選）學生回答（你自己判斷對不對）" />
+      <div class="hint">這裡不會自動判定，只是方便你看/紀錄。</div>
+    </div>
+
+    <div class="row">
+      <button class="primary" id="btnNext">抽一題</button>
+      <button class="good" id="btnCorrect" disabled>答對</button>
+      <button class="bad" id="btnWrong" disabled>答錯</button>
+    </div>
+
+    <div class="hint" id="status"></div>
+
+    <div class="small">
+      ✅ 重新整理（F5）會自動重置（不使用 localStorage）。<br/>
+      想要「刷新也保留進度」再跟我說，我改成 localStorage 版。
+    </div>
+  </div>
+
+<script>
+  // ========= 題庫：U2 / U3 / 元素（只放英文/符號，不放中文/音標/例句） =========
+
+  // U2（來自你上傳的 U2 PDF）：
+  // grass, red fire ant, dangerous, bite, death, kick, themselves, kill,
+  // stay away from..., agree, circle, myself, snake, wet, scary, deep, true, most,
+  // give... a hand, spider, gram, insect, bee, inch, wide, kilogram, nature,
+  // below, sea level, mile, feet, smart, traffic, appear, air, far, slow, light, cross
+  const U2 = [
+    "grass",
+    "red fire ant",
+    "dangerous",
+    "bite",
+    "death",
+    "kick",
+    "themselves",
+    "kill",
+    "stay away from ...",
+    "agree",
+    "circle",
+    "myself",
+    "snake",
+    "wet",
+    "scary",
+    "deep",
+    "true",
+    "most",
+    "give ... a hand",
+    "spider",
+    "gram",
+    "insect",
+    "bee",
+    "inch",
+    "wide",
+    "kilogram",
+    "nature",
+    "below",
+    "sea level",
+    "mile",
+    "feet",
+    "smart",
+    "traffic",
+    "appear",
+    "air",
+    "far",
+    "slow",
+    "light",
+    "cross",
+  ];
+
+  // U3（來自你上傳的 U3 PDF）：
+  // loudly, hard, well, share, weak, hen, dirty, bow, without, quickly,
+  // web page, service, wise, cheer, celebrate, mean, make, break, over,
+  // treat, have, grape, goose, duck, goat, sheep, peach, turtle, pear,
+  // papaya, vegetable, guava, tomato, watermelon, American, million,
+  // pound, pick, bean, cent, chance, choose
+  const U3 = [
+    "loudly",
+    "hard",
+    "well",
+    "share",
+    "weak",
+    "hen",
+    "dirty",
+    "bow",
+    "without",
+    "quickly",
+    "web page",
+    "service",
+    "wise",
+    "cheer",
+    "celebrate",
+    "mean",
+    "make",
+    "break",
+    "over",
+    "treat",
+    "have",
+    "grape",
+    "goose",
+    "duck",
+    "goat",
+    "sheep",
+    "peach",
+    "turtle",
+    "pear",
+    "papaya",
+    "vegetable",
+    "guava",
+    "tomato",
+    "watermelon",
+    "American",
+    "million",
+    "pound",
+    "pick",
+    "bean",
+    "cent",
+    "chance",
+    "choose",
+  ];
+
+  // 元素週期表（前 30 個：H ~ Zn）
+  const ELEMENTS_1_30 = [
+    "H","He","Li","Be","B","C","N","O","F","Ne",
+    "Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca",
+    "Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn"
+  ];
+
+  const BANKS = {
+    u2: { label: "U2", items: U2 },
+    u3: { label: "U3", items: U3 },
+    elements: { label: "元素週期表（前30）", items: ELEMENTS_1_30 },
+  };
+
+  // ========= 狀態（不存 storage：刷新就 reset） =========
+  let mode = "u2";
+  let remaining = [];    // 剩餘題庫（string）
+  let current = null;    // 目前題目（string）
+
+  // ========= DOM =========
+  const $modeSelect = document.getElementById("modeSelect");
+  const $prompt = document.getElementById("prompt");
+  const $remaining = document.getElementById("remaining");
+  const $status = document.getElementById("status");
+  const $studentAnswer = document.getElementById("studentAnswer");
+
+  const $btnNext = document.getElementById("btnNext");
+  const $btnCorrect = document.getElementById("btnCorrect");
+  const $btnWrong = document.getElementById("btnWrong");
+  const $btnReset = document.getElementById("btnReset");
+
+  function setButtons(hasCurrent) {
+    $btnCorrect.disabled = !hasCurrent;
+    $btnWrong.disabled = !hasCurrent;
+  }
+
+  function render() {
+    $remaining.textContent = `剩餘：${remaining.length}`;
+  }
+
+  function resetDeck() {
+    remaining = [...BANKS[mode].items];
+    current = null;
+    $prompt.textContent = "—";
+    $status.textContent = `已重置：${BANKS[mode].label} 共 ${remaining.length} 題`;
+    $studentAnswer.value = "";
+    render();
+    setButtons(false);
+  }
+
+  function pickOne() {
+    $status.textContent = "";
+    $studentAnswer.value = "";
+
+    if (remaining.length === 0) {
+      current = null;
+      $prompt.textContent = "🎉 完成";
+      render();
+      setButtons(false);
+      return;
+    }
+
+    const idx = Math.floor(Math.random() * remaining.length);
+    current = remaining[idx];
+    $prompt.textContent = current;
+    render();
+    setButtons(true);
+  }
+
+  function mark(correct) {
+    if (!current) return;
+
+    if (correct) {
+      // 答對：移除所有同字串（避免同一題重複出現時只刪一個）
+      remaining = remaining.filter(x => x !== current);
+      $status.textContent = "✅ 已標記：答對（已移除這題）";
+    } else {
+      $status.textContent = "❌ 已標記：答錯（保留在題庫）";
+    }
+
+    pickOne();
+  }
+
+  // ========= events =========
+  $modeSelect.addEventListener("change", () => {
+    mode = $modeSelect.value;
+    resetDeck();
+  });
+
+  $btnReset.addEventListener("click", resetDeck);
+  $btnNext.addEventListener("click", pickOne);
+  $btnCorrect.addEventListener("click", () => mark(true));
+  $btnWrong.addEventListener("click", () => mark(false));
+
+  // init
+  resetDeck();
+</script>
+</body>
+</html>
