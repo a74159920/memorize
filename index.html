@@ -6,7 +6,7 @@
   <title>抽題小工具（U2/U3/元素）</title>
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", Arial; margin: 24px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 640px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 680px; }
     .topbar { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     select, button, input { border-radius: 10px; border: 1px solid #ccc; }
     select { padding: 10px 12px; }
@@ -21,12 +21,13 @@
     input { padding: 10px 12px; width: 100%; box-sizing: border-box; }
     .hint { color: #999; font-size: 13px; margin-top: 8px; }
     .small { font-size: 14px; color: #666; margin-top: 12px; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    .pill { font-size: 12px; color:#444; background:#f2f2f2; padding: 4px 8px; border-radius: 999px; border:1px solid #e6e6e6;}
   </style>
 </head>
 <body>
   <div class="card">
     <div class="topbar">
+      <span class="pill" id="deckName">U2</span>
       <div style="color:#666;">模式：</div>
       <select id="modeSelect">
         <option value="u2">U2</option>
@@ -63,104 +64,119 @@
   </div>
 
 <script>
-  // ========= 題庫：U2 / U3 / 元素（只放英文/符號，不放中文/音標/例句） =========
+  // ========= 題庫：只放英文/符號（不放中文/音標/例句） =========
 
-  // U2（來自你上傳的 U2 PDF）：
-  // grass, red fire ant, dangerous, bite, death, kick, themselves, kill,
-  // stay away from..., agree, circle, myself, snake, wet, scary, deep, true, most,
-  // give... a hand, spider, gram, insect, bee, inch, wide, kilogram, nature,
-  // below, sea level, mile, feet, smart, traffic, appear, air, far, slow, light, cross
+  // U2（依你提供的照片：共 53 題）
   const U2 = [
     "grass",
     "red fire ant",
-    "dangerous",
     "bite",
     "death",
-    "kick",
-    "themselves",
-    "kill",
-    "stay away from ...",
-    "agree",
-    "circle",
-    "myself",
+    "rock",
     "snake",
-    "wet",
-    "scary",
-    "deep",
-    "true",
-    "most",
-    "give ... a hand",
     "spider",
     "gram",
     "insect",
     "bee",
     "inch",
-    "wide",
     "kilogram",
-    "nature",
-    "below",
     "sea level",
     "mile",
     "feet",
-    "smart",
-    "traffic",
-    "appear",
-    "air",
+    "wave",
+    "nest",
+    "safety",
+    "meter",
+    "diary",
+    "accident",
+    "kick",
+    "kill",
+    "agree",
+    "shout",
+    "forget",
+    "stay",
+    "cause",
+    "protect",
+    "weigh",
+    "drown",
+    "struggle",
+    "dangerous",
+    "wet",
+    "scary",
+    "deep",
+    "true",
+    "wide",
+    "scared",
+    "few",
+    "worried",
+    "outdoor",
+    "conscious",
+    "most",
     "far",
-    "slow",
-    "light",
-    "cross",
+    "suddenly",
+    "below",
+    "themselves",
+    "stay away from...",
+    "myself",
+    "give... a hand",
+    "until",
+    "nothing",
   ];
 
-  // U3（來自你上傳的 U3 PDF）：
-  // loudly, hard, well, share, weak, hen, dirty, bow, without, quickly,
-  // web page, service, wise, cheer, celebrate, mean, make, break, over,
-  // treat, have, grape, goose, duck, goat, sheep, peach, turtle, pear,
-  // papaya, vegetable, guava, tomato, watermelon, American, million,
-  // pound, pick, bean, cent, chance, choose
+  // U3（依你提供的照片：共 52 題）
   const U3 = [
-    "loudly",
-    "hard",
-    "well",
-    "share",
-    "weak",
     "hen",
-    "dirty",
-    "bow",
-    "without",
-    "quickly",
     "web page",
     "service",
-    "wise",
-    "cheer",
-    "celebrate",
-    "mean",
-    "make",
     "break",
-    "over",
-    "treat",
-    "have",
-    "grape",
     "goose",
     "duck",
     "goat",
-    "sheep",
-    "peach",
-    "turtle",
-    "pear",
     "papaya",
-    "vegetable",
-    "guava",
-    "tomato",
     "watermelon",
+    "guava",
+    "pear",
+    "tomato",
+    "peach",
+    "grape",
+    "turtle",
+    "vegetable",
+    "strawberry",
     "American",
     "million",
     "pound",
-    "pick",
     "bean",
     "cent",
     "chance",
+    "owner",
+    "law",
+    "labor",
+    "information",
+    "cocoa",
+    "share",
+    "make",
+    "treat",
+    "have",
+    "pick",
     "choose",
+    "produce",
+    "improve",
+    "weak",
+    "dirty",
+    "wise",
+    "mean",
+    "bitter",
+    "hard",
+    "well",
+    "quickly",
+    "clearly",
+    "loudly",
+    "slowly",
+    "alone",
+    "without",
+    "over",
+    "No problem.",
+    "take... down",
   ];
 
   // 元素週期表（前 30 個：H ~ Zn）
@@ -182,6 +198,7 @@
   let current = null;    // 目前題目（string）
 
   // ========= DOM =========
+  const $deckName = document.getElementById("deckName");
   const $modeSelect = document.getElementById("modeSelect");
   const $prompt = document.getElementById("prompt");
   const $remaining = document.getElementById("remaining");
@@ -199,6 +216,7 @@
   }
 
   function render() {
+    $deckName.textContent = BANKS[mode].label;
     $remaining.textContent = `剩餘：${remaining.length}`;
   }
 
